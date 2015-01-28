@@ -98,11 +98,11 @@ if [ -z "$PARAM_SEGMENT" ]; then
 
             # Split segment
             echo Splitting segment $d...
-            echo find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+            find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
 
             # Update JSON file
             echo Updating segment JSON file...
-            echo python $JSONUPDATE_SCRIPT $SEGMENT_FOLDER
+            python $JSONUPDATE_SCRIPT $SEGMENT_FOLDER
         fi
     done
 
