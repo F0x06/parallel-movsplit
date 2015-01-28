@@ -5,6 +5,7 @@ PARAM_MOUNT="/data/"
 PARAM_MAC=""
 PARAM_MASTER=""
 PARAM_SEGMENT=""
+PARAM_DISK_THREADS=""
 
 # Arguments and parameters parser #
 arguments() {
@@ -35,6 +36,14 @@ arguments() {
                 PARAM_SEGMENT="$1"
                 shift
             ;;
+            --disk-threads)
+                if [ -z "$1" ]; then
+                    PARAM_DISK_THREADS="+0"
+                else
+                    PARAM_DISK_THREADS="$1"
+                fi
+                shift
+            ;;
         esac
 
     done
@@ -45,19 +54,19 @@ arguments() {
 arguments $@
 
 # Check execution consistency #
-if [ ! -d $PARAM_MOUNT/camera ] || [ ! -d $PARAM_MOUNT/footage ]; then
+if [ -z "$PARAM_MOUNT" ] || [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
 
     # Exit script #
-    echo "Error : unable to access standard directory with specified mount point"
+    echo "Error : cannot continue execution without --mount-point/--mac-address/--master-timestamp parameters"
     exit 1
 
 fi
 
 # Check execution consistency #
-if [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
+if [ ! -d $PARAM_MOUNT/camera ] || [ ! -d $PARAM_MOUNT/footage ]; then
 
     # Exit script #
-    echo "Error : cannot continue execution without --mac-address/--master-timestamp parameters"
+    echo "Error : unable to access standard directory with specified mount point"
     exit 1
 
 fi
@@ -98,8 +107,11 @@ if [ -z "$PARAM_SEGMENT" ]; then
 
             # Split segment
             echo Splitting segment $d...
-            find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
-
+            if [ -z "$PARAM_DISK_THREADS" ]; then
+                find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+            else
+                find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta -j$PARAM_DISK_THREADS python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+            fi
             # Update JSON file
             echo Updating segment JSON file...
             python $JSONUPDATE_SCRIPT $SEGMENT_FOLDER
@@ -119,8 +131,11 @@ else
 
         # Split segment
         echo Splitting segment $PARAM_SEGMENT...
-        find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
-
+        if [ -z "$PARAM_DISK_THREADS" ]; then
+            find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+        else
+            find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta -j$PARAM_DISK_THREADS python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+        fi
         # Update JSON file
         echo Updating segment JSON file...
         python $JSONUPDATE_SCRIPT $SEGMENT_FOLDER
