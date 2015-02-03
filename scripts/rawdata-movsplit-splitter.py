@@ -155,6 +155,7 @@ def extractMOV(InputFile, ModuleName, TrashFolder, OutputFolder, Valid_Timestamp
         epoch = calendar.timegm(date_object.utctimetuple())
         timestamp = "%d_%06d" % (epoch, int(str(EXIF_Tags["EXIF SubSecTimeOriginal"])))
         Output_Name = "%d_%s_%s" % (epoch, EXIF_Tags["EXIF SubSecTimeOriginal"], ModuleName)
+        Output_Prefix = str(epoch)[:7]
 
         # Check if timestamp is valid
         if (timestamp in Valid_Timestamps):
@@ -177,13 +178,16 @@ def extractMOV(InputFile, ModuleName, TrashFolder, OutputFolder, Valid_Timestamp
 
             else:
 
+                # Compute destination folder
+                DestFolder = "%s/%s" % (OutputFolder, Output_Prefix)
+
                 # Create output trash dir if not exists
-                if not os.path.isdir(OutputFolder):
-                    os.system("mkdir -p %s" % OutputFolder)
+                if not os.path.isdir( DestFolder ):
+                    os.system("mkdir -p %s" % DestFolder)
                     time.sleep( 1 )
 
                 # Open output file
-                Output_Image = open('%s/%s.jp4' % (OutputFolder, Output_Name), 'wb')
+                Output_Image = open('%s/%s.jp4' % (DestFolder, Output_Name), 'wb')
 
         # write the file
         if Output_Image:
@@ -223,9 +227,30 @@ def LoadTimestampsFromJSON(JSONFile):
     # Return result
     return sorted(Results)
 
+# Usage display function
+def _usage():
+    print """
+    Usage: %s <MOV file path> <Mount point> <Camera MAC> <Master timestamp> <Segment timestamp>
+    """ % os.path.basename( sys.argv[ 0 ] )
+
 # Program entry point function
 # pylint: disable=W0603
 def main(argv):
+
+    # Check arguments
+    if( len( argv ) < 5 ):
+        _usage()
+        sys.exit( 0 )
+
+    # Parse arguments
+    __Param_MOV__     = argv[ 0 ]
+    __Param_Mount__   = argv[ 1 ]
+    __Param_MAC__     = argv[ 2 ]
+    __Param_Master__  = argv[ 3 ]
+    __Param_Segment__ = argv[ 4 ]
+
+    # Compute base path
+    __BasePath__ = "%s/camera/%s/raw/%s" % (__Param_Mount__, __Param_MAC__, __Param_Master__)
 
     # Extract module name  and first timestamp from MOV path
     exp = re.match( r'.*/(\d+)/(\d+)_\d+\.mov', argv[0])
@@ -234,19 +259,22 @@ def main(argv):
     Module = int( exp.group(1) )
 
     # Compute JSON file path
-    __JSONFile__ = "%s/info/rawdata-autoseg/segment.json" % (argv[1])
+    __JSONFile__ = "%s/segment/%s/info/segment.json" % (__BasePath__, __Param_Segment__)
 
     # Compute corrupted EXIF trashing folder
-    __Trash__    = "%s/info/corrupted/jp4" % (argv[1])
+    __Trash__    = "%s/info/jp4/corrupted/integrity" % (__BasePath__)
+
+    # Compute output folder
+    __Output__ = "%s/segment/%s/jp4" % (__BasePath__, __Param_Segment__)
 
     # Load valid timestamps list
     Valid_Timestamps = LoadTimestampsFromJSON(__JSONFile__)
 
     # Extract MOV file
-    extractMOV(argv[0],   # MOV path
-               Module,    # Module name
-               __Trash__, # Trash folder for corrupted EXIF files
-               "%s/jp4/%s" % (argv[1], exp.group(2)[:7]), # Output folder to write JP4 files
+    extractMOV(__Param_MOV__,   # MOV path
+               Module,     # Module name
+               __Trash__,  # Trash folder for corrupted EXIF files
+               __Output__, # Output folder to write JP4 files
                Valid_Timestamps) # List of valid timestamps to be extracted
 
 # Program entry point

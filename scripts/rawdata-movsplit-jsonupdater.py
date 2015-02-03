@@ -96,15 +96,35 @@ def updateJson(JSONFile, CorruptedPath):
     with open(JSONFile, 'w') as outfile:
         json.dump(json_data, outfile, sort_keys = True, indent = 4)
 
+# Usage display function
+def _usage():
+    print """
+    Usage: %s <Mount point> <Camera MAC> <Master timestamp> <Segment timestamp>
+    """ % os.path.basename( sys.argv[ 0 ] )
+
 # Program entry point function
 # pylint: disable=W0603
 def main(argv):
 
+    # Check arguments
+    if( len( argv ) < 2 ):
+        _usage()
+        sys.exit( 0 )
+
+    # Parse arguments
+    __Param_Mount__   = argv[ 0 ]
+    __Param_MAC__     = argv[ 1 ]
+    __Param_Master__  = argv[ 2 ]
+    __Param_Segment__ = argv[ 3 ]
+
+    # Compute base path
+    __BasePath__ = "%s/camera/%s/raw/%s" % (__Param_Mount__, __Param_MAC__, __Param_Master__)
+
     # Compute JSON file path
-    __JSONFile__ = "%s/info/rawdata-autoseg/segment.json" % (argv[0])
+    __JSONFile__ = "%s/segment/%s/info/segment.json" % (__BasePath__, __Param_Segment__)
 
     # Compute currupted images path
-    __CorruptedPath__ = "%s/info/corrupted/jp4" % (argv[0])
+    __CorruptedPath__ = "%s/info/jp4/corrupted/integrity" % (__BasePath__)
 
     # Tag corrupted images in json
     updateJson( __JSONFile__, __CorruptedPath__)

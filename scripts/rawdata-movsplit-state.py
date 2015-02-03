@@ -42,6 +42,7 @@
 # Imports
 import json
 import sys
+import os
 
 # Function to check if a segment is already extracted
 def SegmentFinished(JSONFile):
@@ -61,12 +62,29 @@ def SegmentFinished(JSONFile):
     else:
         return False
 
+# Usage display function
+def _usage():
+    print """
+    Usage: %s <Mount point> <Camera MAC> <Master timestamp> <Segment timestamp>
+    """ % os.path.basename( sys.argv[ 0 ] )
+
 # Program entry point function
 # pylint: disable=W0603
 def main(argv):
 
+    # Check arguments
+    if( len( argv ) < 4 ):
+        _usage()
+        sys.exit( 0 )
+
+    # Arguments variables
+    __MountPoint__       = argv[ 0 ]
+    __CameraMAC__        = argv[ 1 ]
+    __MasterTimestamp__  = argv[ 2 ]
+    __SegmentTimestamp__ = argv[ 3 ]
+
     # Compute JSON file path
-    __JSONFile__ = "%s/info/rawdata-autoseg/segment.json" % (argv[0])
+    __JSONFile__ = "%s/camera/%s/raw/%s/segment/%s/info/segment.json" % (__MountPoint__, __CameraMAC__, __MasterTimestamp__, __SegmentTimestamp__)
 
     # Return status
     State = SegmentFinished( __JSONFile__ )

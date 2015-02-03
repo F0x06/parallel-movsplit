@@ -98,7 +98,7 @@ if [ -z "$PARAM_MOUNT" ] || [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
 fi
 
 # Check execution consistency #
-if [ ! -d $PARAM_MOUNT/camera ] || [ ! -d $PARAM_MOUNT/footage ]; then
+if [ ! -d $PARAM_MOUNT/camera ]; then
 
     # Exit script #
     echo "Error : unable to access standard directory with specified mount point"
@@ -107,13 +107,16 @@ if [ ! -d $PARAM_MOUNT/camera ] || [ ! -d $PARAM_MOUNT/footage ]; then
 fi
 
 # SSH configs cirectory
-SSH_CONFIGS_DIR="$PARAM_MOUNT/ssh-configs/rawdata-procedures"
+SSH_CONFIGS_DIR="$PARAM_MOUNT/etc/ssh-configs/rawdata-procedures"
 
 # SSH config file
 SSH_CONFIG_FILE="$SSH_CONFIGS_DIR/rawdata-movsplit.conf"
 
 # Segments base folder
-SEGMENTS_DIR="$PARAM_MOUNT/camera/$PARAM_MAC/raw/segment/$PARAM_MASTER"
+MASTER_DIR="$PARAM_MOUNT/camera/$PARAM_MAC/raw/$PARAM_MASTER"
+
+# Segments base folder
+SEGMENTS_DIR="$MASTER_DIR/segment"
 
 # Splitting script
 SPLIT_SCRIPT="scripts/rawdata-movsplit-splitter.py"
@@ -123,6 +126,9 @@ JSONUPDATE_SCRIPT="scripts/rawdata-movsplit-jsonupdater.py"
 
 # State script
 STATE_SCRIPT="scripts/rawdata-movsplit-state.py"
+
+# MOV list script
+LIST_SCRIPT="scripts/rawdata-movsplit-movlist.py"
 
 # Check if a segment is specified
 if [ -z "$PARAM_SEGMENT" ]; then
@@ -135,7 +141,11 @@ if [ -z "$PARAM_SEGMENT" ]; then
         SEGMENT_FOLDER=$SEGMENTS_DIR/$SEGMENT_TIMESTAMP
 
         # Check if segment is already splitted
-        python $STATE_SCRIPT $SEGMENT_FOLDER
+        python $STATE_SCRIPT $PARAM_MOUNT \
+        $PARAM_MAC \
+        $PARAM_MASTER \
+        $SEGMENT_TIMESTAMP
+        
         if [ $? -eq 1 ]; then
             echo "Segment $SEGMENT_TIMESTAMP already splitted, skipping"
         else
@@ -143,13 +153,33 @@ if [ -z "$PARAM_SEGMENT" ]; then
             # Split segment
             echo Splitting segment $d...
             if [ -z "$PARAM_DISK_THREADS" ]; then
-                find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+                python $LIST_SCRIPT \
+                $PARAM_MOUNT \
+                $PARAM_MAC \
+                $PARAM_MASTER \
+                $SEGMENT_TIMESTAMP | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} \
+                $PARAM_MOUNT \
+                $PARAM_MAC \
+                $PARAM_MASTER \
+                $SEGMENT_TIMESTAMP
             else
-                find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta -j$PARAM_DISK_THREADS python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+                python $LIST_SCRIPT \
+                $PARAM_MOUNT \
+                $PARAM_MAC \
+                $PARAM_MASTER \
+                $SEGMENT_TIMESTAMP | sort | parallel --eta -j$PARAM_DISK_THREADS python $SPLIT_SCRIPT {} \
+                $PARAM_MOUNT \
+                $PARAM_MAC \
+                $PARAM_MASTER \
+                $SEGMENT_TIMESTAMP
             fi
+
             # Update JSON file
             echo Updating segment JSON file...
-            python $JSONUPDATE_SCRIPT $SEGMENT_FOLDER
+            python $JSONUPDATE_SCRIPT $PARAM_MOUNT \
+            $PARAM_MAC \
+            $PARAM_MASTER \
+            $SEGMENT_TIMESTAMP
         fi
     done
 
@@ -159,7 +189,11 @@ else
     SEGMENT_FOLDER=$SEGMENTS_DIR/$PARAM_SEGMENT
 
     # Check if segment is already splitted
-    python $STATE_SCRIPT $SEGMENT_FOLDER
+    python $STATE_SCRIPT $PARAM_MOUNT \
+    $PARAM_MAC \
+    $PARAM_MASTER \
+    $PARAM_SEGMENT
+
     if [ $? -eq 1 ]; then
         echo "Segment $PARAM_SEGMENT already splitted, skipping"
     else
@@ -167,13 +201,33 @@ else
         # Split segment
         echo Splitting segment $PARAM_SEGMENT...
         if [ -z "$PARAM_DISK_THREADS" ]; then
-            find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+            python $LIST_SCRIPT \
+            $PARAM_MOUNT \
+            $PARAM_MAC \
+            $PARAM_MASTER \
+            $PARAM_SEGMENT | sort | parallel --eta --ungroup --sshloginfile $SSH_CONFIG_FILE --bf $SPLIT_SCRIPT python $SPLIT_SCRIPT {} \
+            $PARAM_MOUNT \
+            $PARAM_MAC \
+            $PARAM_MASTER \
+            $PARAM_SEGMENT
         else
-            find $SEGMENT_FOLDER/mov -iname '*.mov' | sort | parallel --eta -j$PARAM_DISK_THREADS python $SPLIT_SCRIPT {} $SEGMENT_FOLDER
+            python $LIST_SCRIPT \
+            $PARAM_MOUNT \
+            $PARAM_MAC \
+            $PARAM_MASTER \
+            $PARAM_SEGMENT | sort | parallel --eta -j$PARAM_DISK_THREADS python $SPLIT_SCRIPT {} \
+            $PARAM_MOUNT \
+            $PARAM_MAC \
+            $PARAM_MASTER \
+            $PARAM_SEGMENT
         fi
+
         # Update JSON file
         echo Updating segment JSON file...
-        python $JSONUPDATE_SCRIPT $SEGMENT_FOLDER
+        python $JSONUPDATE_SCRIPT $PARAM_MOUNT \
+        $PARAM_MAC \
+        $PARAM_MASTER \
+        $PARAM_SEGMENT
     fi
 
 fi
