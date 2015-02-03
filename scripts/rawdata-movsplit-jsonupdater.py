@@ -107,7 +107,7 @@ def _usage():
 def main(argv):
 
     # Check arguments
-    if( len( argv ) < 2 ):
+    if( len( argv ) < 4 ):
         _usage()
         sys.exit( 0 )
 
