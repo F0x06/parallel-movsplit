@@ -119,16 +119,16 @@ MASTER_DIR="$PARAM_MOUNT/camera/$PARAM_MAC/raw/$PARAM_MASTER"
 SEGMENTS_DIR="$MASTER_DIR/segment"
 
 # Splitting script
-SPLIT_SCRIPT="scripts/rawdata-movsplit-splitter.py"
+SPLIT_SCRIPT="scripts/rawdata-movsplit-splitter"
 
 # JSON updater script
-JSONUPDATE_SCRIPT="scripts/rawdata-movsplit-jsonupdater.py"
+JSONUPDATE_SCRIPT="scripts/rawdata-movsplit-jsonupdater"
 
 # State script
-STATE_SCRIPT="scripts/rawdata-movsplit-state.py"
+STATE_SCRIPT="scripts/rawdata-movsplit-state"
 
 # MOV list script
-LIST_SCRIPT="scripts/rawdata-movsplit-movlist.py"
+LIST_SCRIPT="scripts/rawdata-movsplit-movlist"
 
 # Check if a segment is specified
 if [ -z "$PARAM_SEGMENT" ]; then
@@ -145,7 +145,7 @@ if [ -z "$PARAM_SEGMENT" ]; then
         $PARAM_MAC \
         $PARAM_MASTER \
         $SEGMENT_TIMESTAMP
-        
+
         if [ $? -eq 1 ]; then
             echo "Segment $SEGMENT_TIMESTAMP already splitted, skipping"
         else
