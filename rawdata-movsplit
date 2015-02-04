@@ -42,10 +42,28 @@ PARAM_MASTER=""
 PARAM_SEGMENT=""
 PARAM_DISK_THREADS=""
 
-# Arguments and parameters parser #
+# Help function
+_help() {
+    echo """
+    Usage: $(basename $0) [OPTIONS]
+
+    [Required arguments]
+    --mount-point       Base mount directory
+    --mac-address       Camera MAC address
+    --master-timestamp  Master timestamp
+
+    [Optional arguments]
+    --segment-timestamp Segment timestamp
+    --no-split          Exit program
+    --disk-threads      Process localy with specified number of threads
+    --help              Show this message
+    """
+}
+
+# Arguments and parameters parser
 arguments() {
 
-    # Search in arguments #
+    # Search in arguments
     while [[ $# > 0 ]]; do
 
         args="$1"
@@ -79,11 +97,20 @@ arguments() {
                 fi
                 shift
             ;;
+            --help | -h)
+                _help
+                exit
+            ;;
         esac
 
     done
 
 }
+
+if [ $# -eq 0 ]; then
+    _help
+    exit
+fi
 
 # Argument and parameters #
 arguments $@
